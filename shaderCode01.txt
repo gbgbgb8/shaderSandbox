@@ -1,0 +1,1 @@
+for(float i,k,j,g,e,s,n=15.;i++<1e2;o.rgb+=hsv(s=log(s)/n,.5,s/2e2k)+FC.zwwgk/6e4){vec3 q,p=vec3((FC.xy-.5r)/r.yg-9.,g)+n;p.zx=rotate2D(t/n);s=j=3.;k=s+snoise3D(vec3(p.xz.1,t));for(q=p;j++<23.;p=vec3(0,4,-1)-abs(abs(p)e-vec3(3,4,3)))s*=e=n/dot(p,p);g+=min(30.-q.y,p.y/s);}
