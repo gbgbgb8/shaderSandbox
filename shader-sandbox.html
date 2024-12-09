@@ -111,22 +111,33 @@
                 vec2 r = resolution;
                 float t = time;
                 vec3 o = vec3(0.0);
+                float n = 15.0;
                 
-                for(float i = 0.0, k = 0.0, j = 0.0, g = 0.0, e = 0.0, s = 0.0, n = 15.0; i < 100.0; i++) {
+                for(float i = 0.0, k = 0.0, j = 0.0, g = 0.0, e = 0.0, s = 0.0; i < 50.0; i++) {
                     vec3 q, p = vec3((FC.xy - 0.5 * r) / r.y * g - 9.0, g) + n;
-                    p.zx *= rotate2D(t / n);
-                    s = j = 3.0;
-                    k = s + snoise3D(vec3(p.xz * noiseScale, t));
                     
-                    for(q = p; j < iterationCount; j++) {
-                        p = vec3(0.0, 4.0, -1.0) - abs(abs(p) * e - vec3(3.0, 4.0, 3.0));
-                        s *= e = n / dot(p, p);
+                    float angle = t / n;
+                    p.zx *= rotate2D(angle);
+                    
+                    s = j = 3.0;
+                    k = s + snoise3D(vec3(p.xz * noiseScale * 0.5, t * 0.5));
+                    
+                    for(q = p; j < min(iterationCount, 15.0); j++) {
+                        vec3 absP = abs(p);
+                        p = vec3(0.0, 4.0, -1.0) - abs(absP * e - vec3(3.0, 4.0, 3.0));
+                        float dp = dot(p, p);
+                        e = n / (dp + 0.001);
+                        s *= e;
                     }
                     
-                    g += min(30.0 - q.y, p.y / s);
-                    o.rgb += hsv(s = log(s) / n, 0.5, s / 200.0 * k) + FC.zww * g * k / 60000.0;
+                    float minVal = min(30.0 - q.y, p.y / (s + 0.001));
+                    g += minVal;
+                    
+                    float hue = log(s + 1.0) / n;
+                    o.rgb += hsv(hue, 0.5, s / 200.0 * k) + FC.zww * g * k / 60000.0;
                 }
                 
+                o = o / (1.0 + o);
                 gl_FragColor = vec4(o, 1.0);
             }
         `;
@@ -141,9 +152,9 @@
         const clock = new THREE.Clock();
 
         const params = {
-            noiseScale: 0.1,
-            rotationSpeed: 1.0,
-            iterationCount: 23.0
+            noiseScale: 0.15,
+            rotationSpeed: 0.8,
+            iterationCount: 15.0
         };
 
         function init() {
@@ -171,13 +182,13 @@
             document.getElementById('container').appendChild(renderer.domElement);
 
             const gui = new dat.GUI();
-            gui.add(params, 'noiseScale', 0.01, 1.0).onChange(value => {
+            gui.add(params, 'noiseScale', 0.01, 0.5).onChange(value => {
                 material.uniforms.noiseScale.value = value;
             });
-            gui.add(params, 'rotationSpeed', 0.1, 5.0).onChange(value => {
+            gui.add(params, 'rotationSpeed', 0.1, 2.0).onChange(value => {
                 material.uniforms.rotationSpeed.value = value;
             });
-            gui.add(params, 'iterationCount', 1, 50).onChange(value => {
+            gui.add(params, 'iterationCount', 1, 15).onChange(value => {
                 material.uniforms.iterationCount.value = value;
             });
 
@@ -186,9 +197,10 @@
         }
 
         function onWindowResize() {
-            const width = window.innerWidth;
-            const height = window.innerHeight;
-            renderer.setSize(width, height);
+            const scale = 0.75;
+            const width = window.innerWidth * scale;
+            const height = window.innerHeight * scale;
+            renderer.setSize(width, height, false);
             material.uniforms.resolution.value.set(width, height);
         }
 
