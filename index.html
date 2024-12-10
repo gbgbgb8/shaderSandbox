@@ -228,8 +228,8 @@
                     .setOrigin(0);
 
                 try {
-                    // Add the post pipeline directly to the sprite
-                    this.customPipeline = sprite.preFX.addPostFX('ComplexPostFX');
+                    // Change preFX to postFX
+                    this.customPipeline = sprite.postFX.addPostFX('ComplexPostFX');
                     console.log('PostFX added successfully');
                 } catch (error) {
                     console.error('Error adding postFX:', error);
