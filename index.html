@@ -177,13 +177,22 @@
                         vec3 o = vec3(0.0);
                         float n = 15.0;
                         
-                        for(float i = 0.0, k = 0.0, j = 0.0, g = 0.0, e = 0.0, s = 0.0; i < 100.0; i++) {
+                        // Declare loop variables outside
+                        float i = 0.0;
+                        float k = 0.0;
+                        float j = 0.0;
+                        float g = 0.0;
+                        float e = 0.0;
+                        float s = 0.0;
+                        
+                        // Simplified for loop
+                        for(i = 0.0; i < 100.0; i++) {
                             vec3 q, p = vec3((FC.xy - 0.5 * resolution) / resolution.y * g - 9.0, g) + n;
                             p.zx *= rotate2D(time * speed / n);
                             s = j = 3.0;
                             k = s + snoise3D(vec3(p.xz * scale, time * speed));
                             
-                            for(q = p; j < float(iterations); j++) {
+                            for(q = p, j = 0.0; j < float(iterations); j++) {
                                 p = vec3(0.0, 4.0, -1.0) - abs(abs(p) * e - vec3(3.0, 4.0, 3.0));
                                 s *= e = n / dot(p, p);
                             }
