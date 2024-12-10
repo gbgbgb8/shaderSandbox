@@ -228,9 +228,11 @@
                     .setOrigin(0);
 
                 try {
-                    // Use addPostPipeline instead of postFX.addPostFX
-                    this.customPipeline = sprite.setPostPipeline('ComplexPostFX');
-                    console.log('PostFX pipeline added successfully to sprite:', this.customPipeline);
+                    // Add the pipeline and get a reference to it
+                    sprite.setPostPipeline('ComplexPostFX');
+                    // Get the actual pipeline instance
+                    this.customPipeline = sprite.postPipelines[0];
+                    console.log('PostFX pipeline added successfully:', this.customPipeline);
                 } catch (error) {
                     console.error('Error adding postFX:', error);
                 }
@@ -238,52 +240,70 @@
                 // Set up control listeners
                 ['speed', 'scale', 'iterations'].forEach(control => {
                     const input = document.getElementById(control);
-                    const value = document.getElementById(control + 'Value');
-                    input.addEventListener('input', () => {
-                        value.textContent = input.value;
-                        if (control === 'speed') this.customPipeline.speed = parseFloat(input.value);
-                        if (control === 'scale') this.customPipeline.scaleValue = parseFloat(input.value);
-                        if (control === 'iterations') this.customPipeline.iterationsValue = parseInt(input.value);
-                    });
+                    const valueDisplay = document.getElementById(control + 'Value');
+                    if (input && valueDisplay) {  // Add null checks
+                        input.addEventListener('input', () => {
+                            valueDisplay.textContent = input.value;
+                            if (this.customPipeline) {  // Add null check
+                                if (control === 'speed') this.customPipeline.speed = parseFloat(input.value);
+                                if (control === 'scale') this.customPipeline.scaleValue = parseFloat(input.value);
+                                if (control === 'iterations') this.customPipeline.iterationsValue = parseInt(input.value);
+                            }
+                        });
+                    }
                 });
 
                 // Randomize button
-                document.getElementById('randomize').addEventListener('click', () => {
-                    const values = {
-                        speed: Math.random() * 2,
-                        scale: Math.random() * 4.9 + 0.1,
-                        iterations: Math.floor(Math.random() * 29) + 1
-                    };
+                const randomizeBtn = document.getElementById('randomize');
+                if (randomizeBtn) {  // Add null check
+                    randomizeBtn.addEventListener('click', () => {
+                        if (!this.customPipeline) return;  // Add guard clause
+                        
+                        const values = {
+                            speed: Math.random() * 2,
+                            scale: Math.random() * 4.9 + 0.1,
+                            iterations: Math.floor(Math.random() * 29) + 1
+                        };
 
-                    Object.entries(values).forEach(([key, value]) => {
-                        const input = document.getElementById(key);
-                        const display = document.getElementById(key + 'Value');
-                        input.value = value;
-                        display.textContent = value;
-                        if (key === 'speed') this.customPipeline.speed = value;
-                        if (key === 'scale') this.customPipeline.scaleValue = value;
-                        if (key === 'iterations') this.customPipeline.iterationsValue = value;
+                        Object.entries(values).forEach(([key, value]) => {
+                            const input = document.getElementById(key);
+                            const display = document.getElementById(key + 'Value');
+                            if (input && display) {  // Add null checks
+                                input.value = value;
+                                display.textContent = value.toFixed(2);  // Format number
+                                if (key === 'speed') this.customPipeline.speed = value;
+                                if (key === 'scale') this.customPipeline.scaleValue = value;
+                                if (key === 'iterations') this.customPipeline.iterationsValue = value;
+                            }
+                        });
                     });
-                });
+                }
 
                 // Reset button
-                document.getElementById('reset').addEventListener('click', () => {
-                    const defaultValues = {
-                        speed: 1.0,
-                        scale: 1.0,
-                        iterations: 15
-                    };
+                const resetBtn = document.getElementById('reset');
+                if (resetBtn) {  // Add null check
+                    resetBtn.addEventListener('click', () => {
+                        if (!this.customPipeline) return;  // Add guard clause
+                        
+                        const defaultValues = {
+                            speed: 1.0,
+                            scale: 1.0,
+                            iterations: 15
+                        };
 
-                    Object.entries(defaultValues).forEach(([key, value]) => {
-                        const input = document.getElementById(key);
-                        const display = document.getElementById(key + 'Value');
-                        input.value = value;
-                        display.textContent = value;
-                        if (key === 'speed') this.customPipeline.speed = value;
-                        if (key === 'scale') this.customPipeline.scaleValue = value;
-                        if (key === 'iterations') this.customPipeline.iterationsValue = value;
+                        Object.entries(defaultValues).forEach(([key, value]) => {
+                            const input = document.getElementById(key);
+                            const display = document.getElementById(key + 'Value');
+                            if (input && display) {  // Add null checks
+                                input.value = value;
+                                display.textContent = value.toFixed(2);  // Format number
+                                if (key === 'speed') this.customPipeline.speed = value;
+                                if (key === 'scale') this.customPipeline.scaleValue = value;
+                                if (key === 'iterations') this.customPipeline.iterationsValue = value;
+                            }
+                        });
                     });
-                });
+                }
             }
         }
 
