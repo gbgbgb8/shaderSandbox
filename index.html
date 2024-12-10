@@ -103,43 +103,60 @@
                     uniform float speed;
                     uniform float scale;
                     uniform int iterations;
-                    
+
+                    vec3 hsv(float h, float s, float v) {
+                        vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+                        vec3 p = abs(fract(vec3(h) + K.xyz) * 6.0 - K.www);
+                        return v * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), s);
+                    }
+
+                    mat2 rotate2D(float angle) {
+                        float s = sin(angle);
+                        float c = cos(angle);
+                        return mat2(c, -s, s, c);
+                    }
+
+                    float snoise3D(vec3 p) {
+                        return fract(sin(dot(p, vec3(12.9898, 78.233, 45.5432))) * 43758.5453);
+                    }
+
                     void main() {
-                        vec2 uv = gl_FragCoord.xy / resolution.xy;
-                        
-                        // Create a moving pattern
+                        vec4 FC = vec4(gl_FragCoord.xy, 0.0, 1.0);
+                        vec2 r = resolution;
                         float t = time * speed;
-                        vec2 pos = uv * scale;
+                        vec3 o = vec3(0.0);
+                        float n = 15.0;
                         
-                        // Create some basic movement
-                        pos.x += sin(t * 0.5) * 0.5;
-                        pos.y += cos(t * 0.3) * 0.5;
-                        
-                        // Create some color
-                        vec3 color = vec3(0.0);
-                        
-                        // Add some iterative patterns
-                        float intensity = 0.0;
-                        vec2 p = pos;
-                        
-                        for (int i = 0; i < 32; i++) {
-                            if (i >= iterations) break; // Respect iteration count
+                        // Pre-declare variables
+                        float i = 0.0;
+                        float k = 0.0;
+                        float j = 0.0;
+                        float g = 0.0;
+                        float e = 0.0;
+                        float s = 0.0;
+
+                        for(i = 0.0; i < 100.0; i++) {
+                            vec3 q;
+                            vec3 p = vec3((FC.xy - 0.5 * r) / r.y * scale - 9.0, g) + n;
                             
-                            float d = length(p) * exp(-length(uv));
+                            // Rotate
+                            p.xz = rotate2D(t/n) * p.xz;
                             
-                            // Create circular patterns
-                            p = vec2(p.x * p.x - p.y * p.y, 2.0 * p.x * p.y) * 1.5 + pos;
+                            s = j = 3.0;
+                            k = s + snoise3D(vec3(p.xz, t));
                             
-                            intensity += 1.0/length(p+vec2(sin(t),cos(t))) * 0.008;
+                            q = p;
+                            for(j = 0.0; j < 23.0; j++) {
+                                p = vec3(0.0, 4.0, -1.0) - abs(abs(p) * e - vec3(3.0, 4.0, 3.0));
+                                e = n / dot(p, p);
+                                s *= e;
+                            }
+                            
+                            g += min(30.0 - q.y, p.y/s);
+                            o.rgb += hsv(s = log(s)/n, 0.5, s/(200.0 * k)) + FC.zww * g * k/60000.0;
                         }
                         
-                        // Create colorful patterns
-                        color.r = intensity * 2.0;
-                        color.g = intensity * 1.5;
-                        color.b = intensity;
-                        
-                        // Output final color
-                        gl_FragColor = vec4(color, 1.0);
+                        gl_FragColor = vec4(o, 1.0);
                     }
                 `;
 
