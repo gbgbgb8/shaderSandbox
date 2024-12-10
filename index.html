@@ -214,7 +214,9 @@
                 
                 // Register the custom pipeline
                 try {
-                    this.renderer.pipelines.addPostPipeline('ComplexPostFX', ComplexPostFX);
+                    if (!this.renderer.pipelines.get('ComplexPostFX')) {
+                        this.renderer.pipelines.add('ComplexPostFX', new ComplexPostFX(this.game));
+                    }
                     console.log('Pipeline registered successfully');
                 } catch (error) {
                     console.error('Error registering pipeline:', error);
@@ -226,8 +228,8 @@
                     .setOrigin(0);
 
                 try {
-                    const postFX = sprite.postFX.addPipeline('ComplexPostFX');
-                    this.customPipeline = postFX.pipeline;
+                    // Add the post pipeline directly to the sprite
+                    this.customPipeline = sprite.preFX.addPostFX('ComplexPostFX');
                     console.log('PostFX added successfully');
                 } catch (error) {
                     console.error('Error adding postFX:', error);
