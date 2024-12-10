@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Complex Shader Sandbox</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.87.0/phaser.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            background: #1a1a1a;
+            color: #fff;
+            font-family: -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+        }
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+        #game-container {
+            flex: 1;
+            position: relative;
+        }
+        .controls {
+            width: 300px;
+            padding: 20px;
+            background: #2a2a2a;
+            overflow-y: auto;
+        }
+        .control-group {
+            margin-bottom: 20px;
+        }
+        .control-item {
+            margin: 10px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="range"] {
+            width: 100%;
+        }
+        .value-display {
+            float: right;
+            opacity: 0.8;
+        }
+        button {
+            background: #4a4a4a;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        button:hover {
+            background: #5a5a5a;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="game-container"></div>
+        <div class="controls">
+            <div class="control-group">
+                <h3>Parameters</h3>
+                <div class="control-item">
+                    <label>Time Scale <span id="speedValue" class="value-display">1.0</span></label>
+                    <input type="range" id="speed" min="0" max="2" step="0.1" value="1.0">
+                </div>
+                <div class="control-item">
+                    <label>Scale <span id="scaleValue" class="value-display">1.0</span></label>
+                    <input type="range" id="scale" min="0.1" max="5" step="0.1" value="1.0">
+                </div>
+                <div class="control-item">
+                    <label>Iterations <span id="iterValue" class="value-display">15</span></label>
+                    <input type="range" id="iterations" min="1" max="30" step="1" value="15">
+                </div>
+            </div>
+            <div class="control-group">
+                <button id="randomize">Randomize</button>
+                <button id="reset">Reset</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Helper function to check shader compilation
+        function checkShaderError(gl, shader, source) {
+            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                console.error('Shader compilation error:', gl.getShaderInfoLog(shader));
+                console.log('Shader source:', source);
+                return false;
+            }
+            return true;
+        }
+
+        class ComplexPostFX extends Phaser.Renderer.WebGL.Pipelines.PostFXPipeline {
+            constructor(game) {
+                console.log('Initializing ComplexPostFX pipeline');
+                
+                const fragShader = `
+                    #define SHADER_NAME COMPLEX_SHADER
+                    precision highp float;
+                    
+                    uniform float time;
+                    uniform float speed;
+                    uniform float scale;
+                    uniform int iterations;
+                    uniform vec2 resolution;
+                    uniform sampler2D uMainSampler;
+                    
+                    varying vec2 outTexCoord;
+
+                    // Utility functions
+                    vec3 hsv(float h, float s, float v) {
+                        vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+                        vec3 p = abs(fract(vec3(h) + K.xyz) * 6.0 - K.www);
+                        return v * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), s);
+                    }
+
+                    mat2 rotate2D(float angle) {
+                        float s = sin(angle);
+                        float c = cos(angle);
+                        return mat2(c, -s, s, c);
+                    }
+
+                    float snoise3D(vec3 p) {
+                        vec3 s = floor(p);
+                        vec3 f = fract(p);
+                        f = f * f * (3.0 - 2.0 * f);
+                        
+                        float n = s.x + s.y * 157.0 + 113.0 * s.z;
+                        vec4 v = fract(753.5453123 * sin(vec4(n, n + 1.0, n + 157.0, n + 158.0)));
+                        
+                        vec2 d = mix(v.xy, v.zw, f.y);
+                        return mix(d.x, d.y, f.z);
+                    }
+                    
+                    void main() {
+                        float n = 15.0;
+                        vec2 FC = gl_FragCoord.xy / resolution;
+                        vec3 color = vec3(0.0);
+                        float g = 0.0;
+                        
+                        for(float i = 0.0; i < 100.0; i++) {
+                            float k = 0.0;
+                            float j = 0.0;
+                            float s = 0.0;
+                            float e = 0.0;
+                            
+                            vec3 q;
+                            vec3 p = vec3((FC.xy - 0.5) / vec2(resolution.y/resolution.x, 1.0) - vec2(9.0), g) + n;
+                            
+                            // Rotate based on time
+                            vec2 rotated = rotate2D(time * speed / n) * p.zx;
+                            p.zx = rotated;
+                            
+                            s = j = 3.0;
+                            k = s + snoise3D(vec3(p.xz, time * speed));
+                            
+                            q = p;
+                            for(float iter = 0.0; iter < 23.0; iter++) {
+                                vec3 offset = vec3(0.0, 4.0, -1.0);
+                                p = offset - abs(abs(p) * e - vec3(3.0, 4.0, 3.0));
+                                e = n / dot(p, p);
+                                s *= e;
+                            }
+                            
+                            g += min(30.0 - q.y, p.y/s);
+                            
+                            // Accumulate color
+                            s = log(s) / n;
+                            color += hsv(s, 0.5, s/(200.0 * k));
+                            color += vec3(0.0, 0.0, 0.0) / 60000.0;
+                        }
+                        
+                        gl_FragColor = vec4(color, 1.0);
+                    }
+                `;
+
+                super({
+                    game,
+                    renderTarget: true,
+                    fragShader
+                });
+
+                console.log('Pipeline created successfully');
+                
+                this.speed = 1.0;
+                this.scaleValue = 1.0;
+                this.iterationsValue = 15;
+            }
+
+            onPreRender() {
+                this.set1f('time', this.game.loop.time / 1000);
+                this.set1f('speed', this.speed);
+                this.set1f('scale', this.scaleValue);
+                this.set1i('iterations', this.iterationsValue);
+                this.set2f('resolution', this.renderer.width, this.renderer.height);
+            }
+        }
+
+        class ShaderScene extends Phaser.Scene {
+            constructor() {
+                super('ShaderScene');
+            }
+
+            preload() {
+                console.log('Preloading assets...');
+                this.load.image('background', 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z/C/HgAGgwJ/lK3Q6wAAAABJRU5ErkJggg==');
+            }
+
+            create() {
+                console.log('Creating scene...');
+                
+                // Register the custom pipeline
+                try {
+                    this.renderer.pipelines.addPostPipeline('ComplexPostFX', ComplexPostFX);
+                    console.log('Pipeline registered successfully');
+                } catch (error) {
+                    console.error('Error registering pipeline:', error);
+                }
+
+                // Create a background sprite
+                const sprite = this.add.sprite(0, 0, 'background')
+                    .setDisplaySize(this.game.config.width, this.game.config.height)
+                    .setOrigin(0);
+
+                try {
+                    const postFX = sprite.postFX.addPipeline('ComplexPostFX');
+                    this.customPipeline = postFX.pipeline;
+                    console.log('PostFX added successfully');
+                } catch (error) {
+                    console.error('Error adding postFX:', error);
+                }
+
+                // Set up control listeners
+                ['speed', 'scale', 'iterations'].forEach(control => {
+                    const input = document.getElementById(control);
+                    const value = document.getElementById(control + 'Value');
+                    input.addEventListener('input', () => {
+                        value.textContent = input.value;
+                        if (control === 'speed') this.customPipeline.speed = parseFloat(input.value);
+                        if (control === 'scale') this.customPipeline.scaleValue = parseFloat(input.value);
+                        if (control === 'iterations') this.customPipeline.iterationsValue = parseInt(input.value);
+                    });
+                });
+
+                // Randomize button
+                document.getElementById('randomize').addEventListener('click', () => {
+                    const values = {
+                        speed: Math.random() * 2,
+                        scale: Math.random() * 4.9 + 0.1,
+                        iterations: Math.floor(Math.random() * 29) + 1
+                    };
+
+                    Object.entries(values).forEach(([key, value]) => {
+                        const input = document.getElementById(key);
+                        const display = document.getElementById(key + 'Value');
+                        input.value = value;
+                        display.textContent = value;
+                        if (key === 'speed') this.customPipeline.speed = value;
+                        if (key === 'scale') this.customPipeline.scaleValue = value;
+                        if (key === 'iterations') this.customPipeline.iterationsValue = value;
+                    });
+                });
+
+                // Reset button
+                document.getElementById('reset').addEventListener('click', () => {
+                    const defaultValues = {
+                        speed: 1.0,
+                        scale: 1.0,
+                        iterations: 15
+                    };
+
+                    Object.entries(defaultValues).forEach(([key, value]) => {
+                        const input = document.getElementById(key);
+                        const display = document.getElementById(key + 'Value');
+                        input.value = value;
+                        display.textContent = value;
+                        if (key === 'speed') this.customPipeline.speed = value;
+                        if (key === 'scale') this.customPipeline.scaleValue = value;
+                        if (key === 'iterations') this.customPipeline.iterationsValue = value;
+                    });
+                });
+            }
+        }
+
+        console.log('Setting up game configuration...');
+        
+        const config = {
+            type: Phaser.WEBGL,
+            parent: 'game-container',
+            width: window.innerWidth - 300,
+            height: window.innerHeight,
+            backgroundColor: '#000000',
+            scene: ShaderScene,
+            pipeline: { 'ComplexPostFX': ComplexPostFX },
+            callbacks: {
+                preBoot: function (game) {
+                    console.log('Game pre-boot...');
+                }
+            }
+        };
+
+        try {
+            const game = new Phaser.Game(config);
+            console.log('Game instance created successfully');
+        } catch (error) {
+            console.error('Error creating game instance:', error);
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            if (game) {
+                game.scale.resize(window.innerWidth - 300, window.innerHeight);
+            }
+        });
+    </script>
+</body>
+</html>
