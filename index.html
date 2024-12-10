@@ -228,9 +228,9 @@
                     .setOrigin(0);
 
                 try {
-                    // Change preFX to postFX
-                    this.customPipeline = sprite.postFX.addPostFX('ComplexPostFX');
-                    console.log('PostFX added successfully');
+                    // Use addPostPipeline instead of postFX.addPostFX
+                    this.customPipeline = sprite.setPostPipeline('ComplexPostFX');
+                    console.log('PostFX pipeline added successfully to sprite:', this.customPipeline);
                 } catch (error) {
                     console.error('Error adding postFX:', error);
                 }
